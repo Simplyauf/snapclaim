@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+dist/
+# Expo prebuild output — regenerate with `npx expo prebuild`
+mobile/android/
+mobile/ios/
+mobile/.expo/
+*.apk
+*.log
+.DS_Store
+.devnet-keypair.json

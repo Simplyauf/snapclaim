@@ -1,0 +1,28 @@
+# Render blueprint for the SnapClaim backend.
+#
+# Deploy: push this repo to GitHub, then on render.com choose
+# New > Blueprint and point it at the repo. Set the secret values below in
+# the Render dashboard — they are deliberately not stored here.
+services:
+  - type: web
+    name: snapclaim-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Secrets: set these in the dashboard, never in the repo.
+      - key: JWT_SECRET
+        sync: false
+      - key: VISION_PROVIDER
+        value: openai-compatible
+      - key: VISION_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: VISION_MODEL
+        value: qwen/qwen3.8-27b
+      - key: VISION_API_KEY
+        sync: false
