@@ -95,6 +95,14 @@ const port = Number(process.env.PORT ?? 8787);
  * the same Wi-Fi gets ECONNREFUSED while the host's own curl succeeds.
  * Explicit IPv4 binding is what makes on-device testing work.
  */
-app.listen(port, '0.0.0.0', () => {
-  console.log(`snapclaim server on http://0.0.0.0:${port}`);
+/**
+ * HOST defaults to 0.0.0.0 so a phone or emulator on the LAN can reach a dev
+ * machine. Behind a reverse proxy set HOST=127.0.0.1 — otherwise the port is
+ * reachable from the internet directly, bypassing nginx, its TLS and any
+ * rate limiting in front.
+ */
+const host = process.env.HOST ?? '0.0.0.0';
+
+app.listen(port, host, () => {
+  console.log(`snapclaim server on http://${host}:${port}`);
 });
