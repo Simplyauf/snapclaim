@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SnapClaim — photograph a receipt, seal the month</title>
+<meta name="description" content="Turn a photo of a paper receipt into a clean expense line, and hand your reviewer a monthly report they can check has not been edited since you sealed it.">
+<meta property="og:title" content="SnapClaim">
+<meta property="og:description" content="Photograph a receipt. Hand over a month's expenses nobody can quietly edit.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2EEE4; --tape:#FBF8F1; --well:#E7E1D3; --rule:#D6CFBE; --rule-strong:#B8AF9A;
+    --ink:#17150F; --ink-2:#5B5546; --ink-3:#8C8470;
+    --stamp:#C8341E; --stamp-soft:#F2D9D2; --seal:#2F6B4F; --seal-soft:#D6E3DA;
+    --amber:#B5831F; --amber-soft:#F3E6C9;
+    --display:"Instrument Serif",Georgia,serif;
+    --ui:"Schibsted Grotesk",system-ui,-apple-system,sans-serif;
+    --mono:"Martian Mono",ui-monospace,SFMono-Regular,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--paper:#121108;--tape:#1C1A12;--well:#262318;--rule:#332F21;--rule-strong:#4A452F;
+      --ink:#F2EEE4;--ink-2:#A9A28C;--ink-3:#7A7360;--stamp:#E8553C;--stamp-soft:#3A1C15;
+      --seal:#5FA883;--seal-soft:#17291F;--amber:#D9A73F;--amber-soft:#2E2413;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--ui);
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+  .micro{font:500 10px/1.4 var(--mono);letter-spacing:1.1px;text-transform:uppercase;color:var(--ink-2)}
+  .mono{font-family:var(--mono);font-size:13px}
+  h1,h2,h3{font-family:var(--display);font-weight:400;letter-spacing:-.02em;margin:0}
+  h1{font-size:clamp(38px,7vw,62px);line-height:1.02}
+  h2{font-size:clamp(26px,4vw,34px);line-height:1.1;margin-bottom:14px}
+  p{margin:0 0 14px}
+  a{color:var(--ink)}
+  .hazard{background:var(--stamp-soft);border-top:1px solid var(--stamp);border-bottom:1px solid var(--stamp);
+    padding:9px 0}
+  .hazard .wrap{display:flex;align-items:center;gap:10px}
+  .dot{width:6px;height:6px;background:var(--stamp)}
+  .hazard .micro{color:var(--stamp)}
+  section{padding:54px 0;border-bottom:1px solid var(--rule)}
+  .lead{font-size:18px;color:var(--ink-2);max-width:60ch}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+  .btn{display:inline-block;padding:14px 20px;border:1px solid var(--ink);background:var(--ink);
+    color:var(--paper);text-decoration:none;font:500 10px/1 var(--mono);letter-spacing:1.4px;
+    text-transform:uppercase;border-radius:2px;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule-strong)}
+  .tape{background:var(--tape);border:1px solid var(--rule);border-radius:2px;padding:22px}
+  .steps{display:grid;gap:18px;margin-top:8px}
+  .step{display:flex;gap:16px}
+  .step .n{font:500 10px/1.6 var(--mono);color:var(--stamp);min-width:22px}
+  .perf{height:1px;background:repeating-linear-gradient(90deg,var(--rule) 0 3px,transparent 3px 6px);
+    margin:18px 0}
+  label{display:block;margin:16px 0 6px}
+  input[type=text],textarea{width:100%;background:var(--tape);color:var(--ink);
+    border:1px solid var(--rule);border-left-width:3px;border-radius:2px;padding:12px;
+    font-family:var(--mono);font-size:12px;min-height:46px}
+  textarea{min-height:120px;line-height:1.5}
+  input[type=file]{font:13px var(--ui);margin-top:6px}
+  .drop{border:1px dashed var(--rule-strong);border-radius:2px;padding:26px;text-align:center;
+    background:var(--tape);cursor:pointer}
+  .drop.over{border-color:var(--stamp);background:var(--stamp-soft)}
+  .stamp{display:inline-block;transform:rotate(-4deg);border:2px solid currentColor;padding:4px 8px;margin:4px 0}
+  .stamp span{display:block;border:1px solid currentColor;padding:5px 10px;
+    font:700 13px/1 var(--mono);letter-spacing:2.4px;text-transform:uppercase}
+  .ok{color:var(--seal)} .bad{color:var(--stamp)} .warn{color:var(--amber)}
+  .result{margin-top:20px;padding:16px;border-left:3px solid var(--rule-strong);background:var(--well);
+    border-radius:2px;display:none}
+  .result.show{display:block}
+  .hex{font-family:var(--mono);font-size:11px;word-break:break-all;color:var(--ink-2);margin-top:8px}
+  footer{padding:36px 0;color:var(--ink-2);font-size:13px}
+  dt{font-weight:600;margin-top:18px}
+  dd{margin:4px 0 0;color:var(--ink-2)}
+  @media (max-width:640px){section{padding:38px 0}}
+</style>
+</head>
+<body>
+
+<div class="hazard"><div class="wrap"><span class="dot"></span><span class="micro">devnet · no real funds</span></div></div>
+
+<section>
+  <div class="wrap">
+    <p class="micro">snapclaim</p>
+    <h1>Photograph a receipt.<br>Hand over a month's expenses<br>nobody can quietly edit.</h1>
+    <p class="lead" style="margin-top:20px">For freelancers, contractors and DAO contributors who claim expenses back. Scan receipts as they happen, seal the month to Solana, and let whoever reimburses you check for themselves that nothing changed.</p>
+    <div class="row">
+      <a class="btn" href="#verify">Verify a report</a>
+      <a class="btn ghost" href="https://github.com/Simplyauf/snapclaim">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>How it works</h2>
+    <div class="tape">
+      <div class="steps">
+        <div class="step"><span class="n">01</span><div><strong>Scan a receipt.</strong> The fields are read for you — vendor, date, tax, total. Anything the model was unsure about is marked, and you correct it before saving.</div></div>
+        <div class="step"><span class="n">02</span><div><strong>Seal the month.</strong> Your expenses are put into one fixed canonical form, hashed with SHA-256, and that fingerprint is written to Solana in a memo you sign with your own wallet.</div></div>
+        <div class="step"><span class="n">03</span><div><strong>Send the report.</strong> Export a CSV. Your reviewer drops it into the form below, which rebuilds the fingerprint in their browser and compares it to the chain.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>What sealing proves</h2>
+    <p class="lead">That the report in front of your reviewer is byte-for-byte the one you sealed, at the moment that transaction landed.</p>
+    <p class="lead"><strong>It does not prove the receipts are genuine</strong>, that nothing was left out before sealing, or that the amounts are fair. It is a tamper check on a document, not an audit.</p>
+    <p class="lead">The reviewer never has to trust the claimant's word about the fingerprint either — the page below ignores the fingerprint written in the file and recomputes it from the expense rows.</p>
+  </div>
+</section>
+
+<section id="verify">
+  <div class="wrap">
+    <h2>Verify a report</h2>
+    <p class="lead">Drop in the CSV you were sent. Everything happens in your browser; the file is never uploaded anywhere.</p>
+
+    <div class="drop" id="drop">
+      <p class="micro" style="margin:0">drop the csv here</p>
+      <p style="margin:8px 0 0;color:var(--ink-2);font-size:14px">or <label for="file" style="display:inline;text-decoration:underline;cursor:pointer;margin:0">choose a file</label></p>
+      <input type="file" id="file" accept=".csv,text/csv" hidden>
+    </div>
+
+    <label class="micro" for="paste">or paste its contents</label>
+    <textarea id="paste" spellcheck="false" placeholder="# snapclaim/csv/v1&#10;# month,2026-10&#10;date,vendor,subtotal,tax,total,currency&#10;..."></textarea>
+
+    <label class="micro" for="sig">transaction signature (optional — taken from the file if present)</label>
+    <input type="text" id="sig" spellcheck="false" placeholder="the devnet transaction">
+
+    <div class="row"><button class="btn" id="go">Check it</button></div>
+
+    <div class="result" id="result"></div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Questions</h2>
+    <dl>
+      <dt>Is this real money?</dt>
+      <dd>No. SnapClaim runs on Solana devnet. The tokens have no value and the app says so on every screen.</dd>
+      <dt>Where do my receipt images go?</dt>
+      <dd>Photographs are sent to an AI provider to be read, and the app tells you so before you connect a wallet. Expenses are stored on your phone against your wallet address. You can delete any expense and its image.</dd>
+      <dt>Does SnapClaim hold my keys?</dt>
+      <dd>No. Signing happens inside your own wallet app through the Mobile Wallet Adapter. SnapClaim never sees a private key, and sealing moves no funds beyond the network fee.</dd>
+      <dt>What if the receipt is read wrong?</dt>
+      <dd>Every field is editable before you save, and uncertain ones are flagged. If parsing fails entirely you can type the fields yourself — the receipt is never lost.</dd>
+      <dt>Which phones does it run on?</dt>
+      <dd>Android, with a wallet app that supports the Mobile Wallet Adapter. It is not on the Solana dApp Store yet.</dd>
+    </dl>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><a href="https://github.com/Simplyauf/snapclaim">GitHub</a> · Built for CLOCK IN, the Solana Mobile hackathon · Devnet only</p>
+  </div>
+</footer>
+
+<script src="verify.js"></script>
+<script>
+(function(){
+  var drop=document.getElementById('drop'), file=document.getElementById('file'),
+      paste=document.getElementById('paste'), sig=document.getElementById('sig'),
+      go=document.getElementById('go'), out=document.getElementById('result');
+
+  function read(f){ var r=new FileReader(); r.onload=function(){ paste.value=String(r.result); check(); }; r.readAsText(f); }
+  file.addEventListener('change',function(){ if(file.files[0]) read(file.files[0]); });
+  drop.addEventListener('click',function(){ file.click(); });
+  ['dragenter','dragover'].forEach(function(e){ drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.add('over');}); });
+  ['dragleave','drop'].forEach(function(e){ drop.addEventListener(e,function(ev){ev.preventDefault();drop.classList.remove('over');}); });
+  drop.addEventListener('drop',function(ev){ var f=ev.dataTransfer.files[0]; if(f) read(f); });
+  go.addEventListener('click',check);
+
+  function group(hex){ return (hex.match(/.{1,4}/g)||[]).join(' '); }
+  function money(minor){ return (minor/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+  function show(html){ out.innerHTML=html; out.classList.add('show'); }
+
+  async function check(){
+    var text=paste.value.trim();
+    if(!text){ show('<p class="micro warn">Add a CSV first.</p>'); return; }
+    show('<p class="micro">checking against the chain…</p>');
+    var r=await window.SnapClaimVerify.verifyCsv(text, sig.value.trim()||undefined);
+
+    if(r.status==='match'){
+      var totals=Object.keys(r.totals).map(function(c){return money(r.totals[c])+' '+c;}).join(' · ');
+      var when=r.blockTime?new Date(r.blockTime*1000).toLocaleString():'unknown time';
+      show('<div class="stamp ok"><span>match</span></div>'+
+        '<p style="margin-top:10px"><strong>This report is exactly what was sealed.</strong></p>'+
+        '<p>'+r.month+' · '+r.rows+' receipt'+(r.rows===1?'':'s')+' · '+totals+'</p>'+
+        '<p class="micro">sealed by '+r.signer+'<br>'+when+'</p>'+
+        '<div class="hex">'+group(r.fingerprint)+'</div>'+
+        '<p class="micro" style="margin-top:14px">this does not prove the receipts are genuine, or that nothing was left out</p>');
+    } else if(r.status==='nomatch'){
+      show('<div class="stamp bad"><span>no match</span></div>'+
+        '<p style="margin-top:10px"><strong>'+r.reason+'</strong></p>'+
+        '<p class="micro">computed from this file</p><div class="hex">'+group(r.computed)+'</div>'+
+        (r.onChain?'<p class="micro" style="margin-top:10px">sealed on chain</p><div class="hex">'+group(r.onChain)+'</div>':''));
+    } else {
+      show('<div class="stamp warn"><span>can\'t check</span></div><p style="margin-top:10px">'+r.reason+'</p>');
+    }
+  }
+})();
+</script>
+</body>
+</html>

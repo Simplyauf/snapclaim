@@ -29,6 +29,7 @@ import {
   monthTotals,
 } from '../lib/store';
 import { shortAddress } from '../lib/address';
+import { shareReportCsv } from '../lib/exportCsv';
 
 type Props = {
   db: Db;
@@ -49,6 +50,7 @@ export function ReportScreen({ db, month, onDbChange, onBack }: Props) {
   const { account, signAndSend } = useWallet();
   const [report, setReport] = useState<Report | null>(null);
   const [sealing, setSealing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const owner = account?.address ?? '';
@@ -75,6 +77,29 @@ export function ReportScreen({ db, month, onDbChange, onBack }: Props) {
       cancelled = true;
     };
   }, [db, month, owner, onDbChange]);
+
+  /**
+   * FR-16. Offered whether or not the month is sealed: a draft is still a
+   * useful thing to send, and an unsealed file simply has no transaction to
+   * check against.
+   */
+  const onExport = useCallback(async () => {
+    if (!report) return;
+    setError(null);
+    setExporting(true);
+    try {
+      await shareReportCsv(buildCanonicalReport(db, month, owner), {
+        fingerprint: report.fingerprint,
+        signature: report.signature,
+        cluster: report.cluster,
+        version: report.version,
+      });
+    } catch (e) {
+      setError(`Could not export the report: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setExporting(false);
+    }
+  }, [report, db, month, owner]);
 
   const onSeal = useCallback(async () => {
     if (!report || !account) return;
@@ -214,6 +239,10 @@ export function ReportScreen({ db, month, onDbChange, onBack }: Props) {
                 variant="outline"
                 onPress={() => Linking.openURL(explorerTxUrl(report.signature!))}
               />
+              <Button label="send report to reviewer" busy={exporting} onPress={onExport} />
+              <Text variant="micro" tone="tertiary">
+                sends a csv they can check against the chain themselves
+              </Text>
             </View>
           </Tape>
         ) : (
@@ -240,6 +269,13 @@ export function ReportScreen({ db, month, onDbChange, onBack }: Props) {
               Sealing writes this fingerprint to {CLUSTER} and locks the version. It proves the
               report has not changed since — not that the receipts are genuine.
             </Text>
+            <Button
+              label="export csv"
+              variant="outline"
+              busy={exporting}
+              disabled={!report || expenses.length === 0}
+              onPress={onExport}
+            />
             <Button
               label="seal this month"
               variant="stamp"

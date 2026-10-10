@@ -1,0 +1,7 @@
+{
+  "name": "snapclaim",
+  "private": true,
+  "scripts": {
+    "build:web": "npx esbuild web/src/verify.ts --bundle --format=iife --global-name=SC --outfile=web/verify.js --minify"
+  }
+}

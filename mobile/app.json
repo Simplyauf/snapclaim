@@ -28,7 +28,8 @@
       "expo-camera",
       "expo-image-picker",
       "./plugins/withSolanaWalletQueries",
-      "./plugins/withDevCleartext"
+      "./plugins/withDevCleartext",
+      "expo-sharing"
     ],
     "scheme": "snapclaim"
   }
