@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/Text';
 import { Tape } from '../components/Tape';
@@ -18,6 +18,7 @@ export function HomeScreen({
   onOpenReport,
   onOpenVerify,
   onOpenExpense,
+  onOpenSettings,
 }: {
   db: Db;
   month: string;
@@ -25,6 +26,7 @@ export function HomeScreen({
   onOpenReport: () => void;
   onOpenVerify: () => void;
   onOpenExpense?: (id: string) => void;
+  onOpenSettings?: () => void;
 }) {
   const { c, space } = useTheme();
   const expenses = expensesForMonth(db, month);
@@ -40,10 +42,23 @@ export function HomeScreen({
       <ScrollView contentContainerStyle={{ padding: space.gutter, paddingBottom: space.xxl, gap: space.lg }}>
         {/* Hero: the running month total, which is the stickiness bet in the
             brief — it has to be the first thing seen on every open. */}
-        <View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Text variant="micro" tone="secondary">
             claiming for
           </Text>
+          <Pressable
+            onPress={onOpenSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            hitSlop={12}
+            style={{ minHeight: 44, justifyContent: 'center' }}
+          >
+            <Text variant="micro" tone="tertiary">
+              settings
+            </Text>
+          </Pressable>
+        </View>
+        <View style={{ marginTop: -space.lg }}>
           <Text variant="displayM" style={{ marginTop: space.xs }}>
             {monthName(month)}
           </Text>
@@ -91,14 +106,19 @@ export function HomeScreen({
             {expenses.map((e, i) => (
               <View key={e.id}>
                 {i > 0 ? <Perforation /> : null}
-                <View
-                  style={{
+                <Pressable
+                  onPress={() => onOpenExpense?.(e.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${e.vendor}, ${formatAmount(e.total)}. Open to edit or delete.`}
+                  style={({ pressed }) => ({
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: space.md,
                     paddingHorizontal: space.base,
                     paddingVertical: space.md,
-                  }}
+                    minHeight: 48,
+                    backgroundColor: pressed ? c.well : 'transparent',
+                  })}
                 >
                   <Text variant="micro" tone="tertiary" style={{ width: 54 }}>
                     {tapeDate(e.date)}
@@ -114,7 +134,7 @@ export function HomeScreen({
                     ) : null}
                   </View>
                   <Text variant="data">{formatAmount(e.total)}</Text>
-                </View>
+                </Pressable>
               </View>
             ))}
             <Perforation strong />

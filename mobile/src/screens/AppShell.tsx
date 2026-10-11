@@ -4,11 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../design/theme';
 import { useWallet } from '../lib/wallet';
 import { authenticate } from '../lib/api';
-import { Db, Expense, emptyDb, loadDb, saveDb, upsertExpense } from '../lib/store';
+import { Db, Expense, deleteExpense, emptyDb, latestReport, loadDb, saveDb, upsertExpense } from '../lib/store';
+import { deleteImage } from '../lib/images';
 import { HomeScreen } from './HomeScreen';
 import { CaptureScreen } from './CaptureScreen';
 import { ReviewScreen } from './ReviewScreen';
 import { ReportScreen } from './ReportScreen';
+import { ExpenseDetailScreen } from './ExpenseDetailScreen';
+import { SettingsScreen } from './SettingsScreen';
 import { VerifyScreen } from './VerifyScreen';
 
 type Route =
@@ -16,7 +19,9 @@ type Route =
   | { name: 'capture' }
   | { name: 'review'; imageUri: string }
   | { name: 'report' }
-  | { name: 'verify' };
+  | { name: 'verify' }
+  | { name: 'expense'; id: string }
+  | { name: 'settings' };
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -79,6 +84,27 @@ export function AppShell() {
     [db, update],
   );
 
+  /** FR-12: removing an expense removes its image too, not just the row. */
+  const onDeleteExpense = useCallback(
+    async (id: string) => {
+      const target = db.expenses.find((e) => e.id === id);
+      update(deleteExpense(db, id));
+      setRoute({ name: 'home' });
+      await deleteImage(target?.imageUri);
+    },
+    [db, update],
+  );
+
+  /**
+   * Wipe everything held on the phone. Images are deleted before the rows, so
+   * a failure part-way cannot orphan files whose paths we have just forgotten.
+   */
+  const onDeleteEverything = useCallback(async () => {
+    for (const e of db.expenses) await deleteImage(e.imageUri);
+    update(emptyDb());
+    setRoute({ name: 'home' });
+  }, [db, update]);
+
   if (!loaded) return <View style={{ flex: 1, backgroundColor: c.ground }} />;
 
   switch (route.name) {
@@ -100,6 +126,29 @@ export function AppShell() {
       );
     case 'verify':
       return <VerifyScreen db={db} onBack={() => setRoute({ name: 'home' })} />;
+    case 'expense': {
+      const expense = db.expenses.find((e) => e.id === route.id);
+      // The expense can vanish under us (deleted on another route); fall back
+      // to home rather than rendering a detail screen with nothing in it.
+      if (!expense) {
+        setRoute({ name: 'home' });
+        return <View style={{ flex: 1, backgroundColor: c.ground }} />;
+      }
+      return (
+        <ExpenseDetailScreen
+          expense={expense}
+          monthIsSealed={latestReport(db, month)?.status === 'sealed'}
+          onSave={(next) => {
+            update(upsertExpense(db, next));
+            setRoute({ name: 'home' });
+          }}
+          onDelete={onDeleteExpense}
+          onBack={() => setRoute({ name: 'home' })}
+        />
+      );
+    }
+    case 'settings':
+      return <SettingsScreen db={db} onDeleteEverything={onDeleteEverything} onBack={() => setRoute({ name: 'home' })} />;
     case 'report':
       return <ReportScreen db={db} month={month} onDbChange={update} onBack={() => setRoute({ name: 'home' })} />;
     default:
@@ -110,6 +159,8 @@ export function AppShell() {
           onScan={() => setRoute({ name: 'capture' })}
           onOpenReport={() => setRoute({ name: 'report' })}
           onOpenVerify={() => setRoute({ name: 'verify' })}
+          onOpenExpense={(id) => setRoute({ name: 'expense', id })}
+          onOpenSettings={() => setRoute({ name: 'settings' })}
         />
       );
   }
