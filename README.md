@@ -14,7 +14,9 @@ the receipts are genuine, or that nothing was left out before sealing.
 |---|---|
 | `mobile/` | The Android app (Expo dev build, React Native) |
 | `server/` | Node backend: receipt parsing and wallet-tied sessions |
+| `web/` | Landing page and the browser verify page, live at [snapclaim.maemate.com](https://snapclaim.maemate.com) |
 | `project.md` | The business requirements this build is held to |
+| `TESTS.md` | A real captured test run, not just the command |
 
 ## Known dependency findings
 
@@ -150,14 +152,28 @@ cd mobile
 npm install
 ```
 
-Point the app at your backend by creating `mobile/.env`:
+Point the app at a backend by creating `mobile/.env`. Three options:
 
 ```
+# Fastest: the backend already running for judging. Real Groq-backed
+# parsing, no setup, no API key of your own.
+EXPO_PUBLIC_API_URL=https://snapclaim.maemate.com
+
+# Or your own backend from step 1, on your LAN:
 EXPO_PUBLIC_API_URL=http://<your-machine-ip>:8787
+
+# Or on the Android emulator specifically, which cannot reach a LAN IP by
+# that address — 10.0.2.2 is the emulator's fixed alias for the host:
+EXPO_PUBLIC_API_URL=http://10.0.2.2:8787
 ```
 
 Leave `EXPO_PUBLIC_API_URL` unset to run against a built-in sample parser —
 capture and review work offline, with no backend and no API costs.
+
+**This is a devnet hackathon build.** `https://snapclaim.maemate.com` is a
+personal server kept up for the duration of judging, not a guaranteed
+long-term service — if it is ever down, point the app at a backend you run
+yourself using step 1.
 
 Then build and install a dev build (Mobile Wallet Adapter needs native code, so
 Expo Go will not work):
