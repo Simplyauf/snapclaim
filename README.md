@@ -16,6 +16,18 @@ the receipts are genuine, or that nothing was left out before sealing.
 | `server/` | Node backend: receipt parsing and wallet-tied sessions |
 | `project.md` | The business requirements this build is held to |
 
+## Known dependency findings
+
+A security scan flags three moderate-severity advisories (`stream-json`,
+`uuid`) pulled in transitively by `@solana/web3.js` and the Mobile Wallet
+Adapter packages — not code in this repo. Neither is reachable from how this
+app uses them: the `stream-json` DoS needs attacker-supplied deeply nested
+JSON parsed by the dependency itself, and the `uuid` issue needs a caller to
+pass a custom buffer, which nothing here does. `@solana/web3.js` is already
+pinned to its latest 1.x (`1.99.0`); the fix is migrating to `@solana/kit`, a
+different API, which is a deliberate post-hackathon change rather than one to
+make against a working, on-device-verified signing path under deadline.
+
 ## Where the code lives
 
 For anyone auditing the claims in the deck, each one maps to a file:
