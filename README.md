@@ -16,6 +16,58 @@ the receipts are genuine, or that nothing was left out before sealing.
 | `server/` | Node backend: receipt parsing and wallet-tied sessions |
 | `project.md` | The business requirements this build is held to |
 
+## Where the code lives
+
+For anyone auditing the claims in the deck, each one maps to a file:
+
+| Claim | File |
+|---|---|
+| Mobile Wallet Adapter: discovery, sign-in-with-Solana, signing | [`mobile/src/lib/wallet.tsx`](mobile/src/lib/wallet.tsx) |
+| Android package visibility (`solana-wallet` queries) — without this no wallet is discoverable on Android 11+ | [`mobile/plugins/withSolanaWalletQueries.js`](mobile/plugins/withSolanaWalletQueries.js) |
+| Canonical report form + SHA-256 fingerprint (pure, no RN/node deps) | [`mobile/src/lib/canonical.ts`](mobile/src/lib/canonical.ts) |
+| Memo transaction, verification, idempotent seal lookup | [`mobile/src/lib/solana.ts`](mobile/src/lib/solana.ts) |
+| Report CSV the reviewer receives | [`mobile/src/lib/csv.ts`](mobile/src/lib/csv.ts) |
+| Browser verifier — recomputes the hash, ignores the claimant's fingerprint | [`web/src/verify.ts`](web/src/verify.ts), bundled to `web/verify.js` |
+| Report versioning after a seal (FR-21) | [`mobile/src/lib/store.ts`](mobile/src/lib/store.ts) |
+| Backend: wallet-signature sessions, rate limiting, upload validation | [`server/src/index.ts`](server/src/index.ts), [`server/src/auth.ts`](server/src/auth.ts) |
+| Vision provider (Claude or any OpenAI-compatible host) | [`server/src/vision.ts`](server/src/vision.ts) |
+| Tests | [`mobile/src/lib/__tests__/`](mobile/src/lib/__tests__/) |
+
+### Verifying the claims yourself
+
+```bash
+cd mobile && npm install && npm test     # 68 tests
+```
+
+Covers canonical determinism, single-character tamper detection, report
+versioning after sealing, MWA's base64 address encoding, amount and date
+normalisation, CSV round-trip, and every verification outcome.
+
+**Idempotent sealing** is `findExistingSeal` in `mobile/src/lib/solana.ts`,
+called by `ReportScreen` before any transaction is built: if this wallet has
+already written this fingerprint for this month, the app adopts that seal
+instead of paying for an identical one. Tests for it are in
+`mobile/src/lib/__tests__/solana.test.ts`.
+
+**A real seal to check against** — this report was sealed from the app on
+devnet, and the CSV round-trip test reproduces its fingerprint exactly:
+
+```
+memo        snapclaim:v1:2026-10:1df7213fb91f64aa96f9de644e8f5db4f48237d13c325cf1e361bd3f72b8c101
+signature   4wSfsWUeEMDcEd2QfkZ8NzyKSgRzyoJSySHBEUTu2NvKR9ecmY72HAzrVBoSa4r3dhGXxqP2msoe8oxVKWbAmEnF
+explorer    https://explorer.solana.com/tx/4wSfsWUeEMDcEd2QfkZ8NzyKSgRzyoJSySHBEUTu2NvKR9ecmY72HAzrVBoSa4r3dhGXxqP2msoe8oxVKWbAmEnF?cluster=devnet
+```
+
+### Android build
+
+```bash
+cd mobile && npx expo prebuild --platform android
+cd android && ./gradlew assembleRelease
+```
+
+Needs JDK 17 and Android SDK platform 36. Mobile Wallet Adapter requires a
+native build — Expo Go cannot sign transactions.
+
 ## What works today
 
 - Wallet connect and sign-in through Mobile Wallet Adapter (FR-1, FR-2)
