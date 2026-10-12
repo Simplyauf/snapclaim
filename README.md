@@ -51,6 +51,9 @@ For anyone auditing the claims in the deck, each one maps to a file:
 cd mobile && npm install && npm test     # 68 tests
 ```
 
+The real output — pass/fail, coverage by file — is captured in [TESTS.md](TESTS.md)
+rather than just claimed.
+
 Covers canonical determinism, single-character tamper detection, report
 versioning after sealing, MWA's base64 address encoding, amount and date
 normalisation, CSV round-trip, and every verification outcome.
